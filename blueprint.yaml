@@ -1,0 +1,130 @@
+formatVersion: 1
+inputs:
+  instanceCount:
+    type: integer
+    title: Enter Instance Count
+    minimum: 1
+    maximum: 10
+    default: 1
+  # =========================
+  # DISK MOUNTPOINTS
+  # =========================
+  diskMount1:
+    type: string
+    title: Enter Drive Mountpoint 1
+    minLength: 2
+    maxLength: 100
+    default: '/mnt/disk1'
+  diskMount2:
+    type: string
+    title: Enter Drive Mountpoint 2
+    minLength: 2
+    maxLength: 100
+    default: '/mnt/disk2'
+  diskMount3:
+    type: string
+    title: Enter Drive Mountpoint 3
+    minLength: 2
+    maxLength: 100
+    default: '/mnt/disk3'
+  diskMount4:
+    type: string
+    title: Enter Drive Mountpoint 4
+    minLength: 2
+    maxLength: 100
+    default: '/mnt/disk4'
+  diskMount5:
+    type: string
+    title: Enter Drive Mountpoint 5
+    minLength: 2
+    maxLength: 100
+    default: '/mnt/disk5'
+  # =========================
+  # DISK SIZES
+  # =========================
+  diskSize1:
+    type: integer
+    title: Drive Size 1 (GB)
+    minimum: 0
+    maximum: 500
+    default: 0
+  diskSize2:
+    type: integer
+    title: Drive Size 2 (GB)
+    minimum: 0
+    maximum: 500
+    default: 0
+  diskSize3:
+    type: integer
+    title: Drive Size 3 (GB)
+    minimum: 0
+    maximum: 500
+    default: 0
+  diskSize4:
+    type: integer
+    title: Drive Size 4 (GB)
+    minimum: 0
+    maximum: 500
+    default: 0
+  diskSize5:
+    type: integer
+    title: Drive Size 5 (GB)
+    minimum: 0
+    maximum: 500
+    default: 0
+resources:
+  # =========================
+  # DISK RESOURCES
+  # =========================
+  Disk1:
+    type: Cloud.vSphere.Disk
+    properties:
+      # depending on the size conditionally create the disk (by using the count property)
+      count: '${input.diskSize1 == 0 ? 0 : 1}'
+      capacityGb: '${input.diskSize1}'
+      diskMount: '${input.diskMount1}'
+  Disk2:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: '${input.diskSize2 == 0 ? 0 : 1}'
+      capacityGb: '${input.diskSize2}'
+      diskMount: '${input.diskMount2}'
+  Disk3:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: '${input.diskSize3 == 0 ? 0 : 1}'
+      capacityGb: '${input.diskSize3}'
+      diskMount: '${input.diskMount3}'
+  Disk4:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: '${input.diskSize4 == 0 ? 0 : 1}'
+      capacityGb: '${input.diskSize4}'
+      diskMount: '${input.diskMount4}'
+  Disk5:
+    type: Cloud.vSphere.Disk
+    properties:
+      count: '${input.diskSize5 == 0 ? 0 : 1}'
+      capacityGb: '${input.diskSize5}'
+      diskMount: '${input.diskMount5}'
+  # =========================
+  # COMPUTE RESOURCES
+  # =========================
+  Compute:
+    type: Cloud.vSphere.Machine
+    properties:
+      count: '${input.instanceCount}'
+      imageRef: smallVM
+      cpuCount: 4
+      totalMemoryMB: 4096
+      networks:
+        - network: '${resource.Network.id}'
+      # conditionally attach between 0 and 5 disks to the machine
+      attachedDisks: '${map_to_object(resource.Disk1[*].id + resource.Disk2[*].id + resource.Disk3[*].id + resource.Disk4[*].id + resource.Disk5[*].id, "source")}'
+  # =========================
+  # NETWORK RESOURCES
+  # =========================
+  Network:
+    type: Cloud.vSphere.Network
+    properties:
+      networkType: existing
