@@ -1,6 +1,6 @@
 formatVersion: 1
 name: OrderedMountPoints
-version: 0.1.0
+version: 0.2.0
 inputs:
   instanceCount:
     type: integer
@@ -27,56 +27,38 @@ inputs:
         mountpoint:
           type: string
           title: Mountpoint/Drive Letter
-  os-image:
-    type: string
-    description: Select an OS image
-    default: Linux
-    title: 'Select OS:'
-    oneOf:
-      - title: Windows
-        const: Windows
-      - title: Linux
-        const: Linux
-  hw-config:
-    type: string
-    description: Select hardware size
-    default: Small
-    title: 'Select Size:'
-    oneOf:
-      - title: Small
-        const: Small
-      - title: Medium
-        const: Medium
-      - title: Large
-        const: Large
 resources:
   # =========================
   # DISK RESOURCES
   # =========================
-  
   Cloud_vSphere_Disk_1:
     type: Cloud.vSphere.Disk
     properties:
+      Prefix: DEMODisk
       capacityGb: '${input.disks[0].size}'
       count: '${ length(input.disks) >= 1 ? 1 : 0 }'
   Cloud_vSphere_Disk_2:
     type: Cloud.vSphere.Disk
     properties:
+      Prefix: DEMODisk
       capacityGb: '${input.disks[1].size}'
       count: '${ length(input.disks) >= 2 ? 1 : 0 }'
   Cloud_vSphere_Disk_3:
     type: Cloud.vSphere.Disk
     properties:
+      Prefix: DEMODisk
       capacityGb: '${input.disks[2].size}'
       count: '${ length(input.disks) >= 3 ? 1 : 0 }'
   Cloud_vSphere_Disk_4:
     type: Cloud.vSphere.Disk
     properties:
+      Prefix: DEMODisk
       capacityGb: '${input.disks[3].size}'
       count: '${ length(input.disks) >= 4 ? 1 : 0 }'
   Cloud_vSphere_Disk_5:
     type: Cloud.vSphere.Disk
     properties:
+      Prefix: DEMODisk
       capacityGb: '${input.disks[4].size}'
       count: '${ length(input.disks) >= 5 ? 1 : 0 }'
   # =========================
@@ -85,17 +67,26 @@ resources:
   Compute:
     type: Cloud.vSphere.Machine
     properties:
+      Prefix: Demo
       count: '${input.instanceCount}'
-      image: '${input.os-image}'
-      flavor: '${input.hw-config}'
+      image: Linux
+      flavor: Small
       networks:
         - network: '${resource.Network.id}'
+          assignment: static
+      constraints:
+        - tag: 'Compute:Tag'
+      storage:
+        constraints:
+          - tag: 'Storage:Tag'
       # conditionally attach between 0 and 5 disks to the machine
       attachedDisks: '${map_to_object(resource.Cloud_vSphere_Disk_1[*].id+resource.Cloud_vSphere_Disk_2[*].id+resource.Cloud_vSphere_Disk_3[*].id+resource.Cloud_vSphere_Disk_4[*].id+resource.Cloud_vSphere_Disk_5[*].id,"source")}'
-   # =========================
+  # =========================
   # NETWORK RESOURCES
   # =========================
   Network:
     type: Cloud.vSphere.Network
     properties:
       networkType: existing
+      constraints:
+        - tag: 'Network:Tag'
