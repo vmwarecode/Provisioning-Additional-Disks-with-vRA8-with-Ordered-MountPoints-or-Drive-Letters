@@ -1,4 +1,6 @@
 formatVersion: 1
+name: OrderedMountPoints
+version: 0.1.0
 inputs:
   instanceCount:
     type: integer
@@ -9,104 +11,74 @@ inputs:
   # =========================
   # DISK MOUNTPOINTS
   # =========================
-  diskMount1:
+  disks:
+    type: array
+    title: Disks
+    description: Data disk mount points and sizes
+    items:
+      type: object
+      maxItems: 5
+      properties:
+        size:
+          type: number
+          title: Size GB
+          minimum: 1
+          maximum: 1024
+        mountpoint:
+          type: string
+          title: Mountpoint/Drive Letter
+  os-image:
     type: string
-    title: Enter Drive Mountpoint 1
-    minLength: 2
-    maxLength: 100
-    default: '/mnt/disk1'
-  diskMount2:
+    description: Select an OS image
+    default: Linux
+    title: 'Select OS:'
+    oneOf:
+      - title: Windows
+        const: Windows
+      - title: Linux
+        const: Linux
+  hw-config:
     type: string
-    title: Enter Drive Mountpoint 2
-    minLength: 2
-    maxLength: 100
-    default: '/mnt/disk2'
-  diskMount3:
-    type: string
-    title: Enter Drive Mountpoint 3
-    minLength: 2
-    maxLength: 100
-    default: '/mnt/disk3'
-  diskMount4:
-    type: string
-    title: Enter Drive Mountpoint 4
-    minLength: 2
-    maxLength: 100
-    default: '/mnt/disk4'
-  diskMount5:
-    type: string
-    title: Enter Drive Mountpoint 5
-    minLength: 2
-    maxLength: 100
-    default: '/mnt/disk5'
-  # =========================
-  # DISK SIZES
-  # =========================
-  diskSize1:
-    type: integer
-    title: Drive Size 1 (GB)
-    minimum: 0
-    maximum: 500
-    default: 0
-  diskSize2:
-    type: integer
-    title: Drive Size 2 (GB)
-    minimum: 0
-    maximum: 500
-    default: 0
-  diskSize3:
-    type: integer
-    title: Drive Size 3 (GB)
-    minimum: 0
-    maximum: 500
-    default: 0
-  diskSize4:
-    type: integer
-    title: Drive Size 4 (GB)
-    minimum: 0
-    maximum: 500
-    default: 0
-  diskSize5:
-    type: integer
-    title: Drive Size 5 (GB)
-    minimum: 0
-    maximum: 500
-    default: 0
+    description: Select hardware size
+    default: Small
+    title: 'Select Size:'
+    oneOf:
+      - title: Small
+        const: Small
+      - title: Medium
+        const: Medium
+      - title: Large
+        const: Large
 resources:
   # =========================
   # DISK RESOURCES
   # =========================
-  Disk1:
+  
+  Cloud_vSphere_Disk_1:
     type: Cloud.vSphere.Disk
     properties:
-      # depending on the size conditionally create the disk (by using the count property)
-      count: '${input.diskSize1 == 0 ? 0 : 1}'
-      capacityGb: '${input.diskSize1}'
-      diskMount: '${input.diskMount1}'
-  Disk2:
+      capacityGb: '${input.disks[0].size}'
+      count: '${ length(input.disks) >= 1 ? 1 : 0 }'
+  Cloud_vSphere_Disk_2:
     type: Cloud.vSphere.Disk
     properties:
-      count: '${input.diskSize2 == 0 ? 0 : 1}'
-      capacityGb: '${input.diskSize2}'
-      diskMount: '${input.diskMount2}'
-  Disk3:
+      capacityGb: '${input.disks[1].size}'
+      count: '${ length(input.disks) >= 2 ? 1 : 0 }'
+  Cloud_vSphere_Disk_3:
     type: Cloud.vSphere.Disk
     properties:
-      count: '${input.diskSize3 == 0 ? 0 : 1}'
-      capacityGb: '${input.diskSize3}'
-      diskMount: '${input.diskMount3}'
-  Disk4:
+      capacityGb: '${input.disks[2].size}'
+      count: '${ length(input.disks) >= 3 ? 1 : 0 }'
+  Cloud_vSphere_Disk_4:
     type: Cloud.vSphere.Disk
     properties:
-      count: '${input.diskSize4 == 0 ? 0 : 1}'
-      capacityGb: '${input.diskSize4}'
-      diskMount: '${input.diskMount4}'
-  Disk5:
+      capacityGb: '${input.disks[3].size}'
+      count: '${ length(input.disks) >= 4 ? 1 : 0 }'
+  Cloud_vSphere_Disk_5:
     type: Cloud.vSphere.Disk
     properties:
-      count: '${input.diskSize5 == 0 ? 0 : 1}'
-      capacityGb: '${input.diskSize5}'
-      diskMount: '${input.diskMount5}'
+      capacityGb: '${input.disks[4].size}'
+      count: '${ length(input.disks) >= 5 ? 1 : 0 }'
   # =========================
   # COMPUTE RESOURCES
   # =========================
@@ -114,14 +86,13 @@ resources:
     type: Cloud.vSphere.Machine
     properties:
       count: '${input.instanceCount}'
-      imageRef: smallVM
-      cpuCount: 4
-      totalMemoryMB: 4096
+      image: '${input.os-image}'
+      flavor: '${input.hw-config}'
       networks:
         - network: '${resource.Network.id}'
       # conditionally attach between 0 and 5 disks to the machine
-      attachedDisks: '${map_to_object(resource.Disk1[*].id + resource.Disk2[*].id + resource.Disk3[*].id + resource.Disk4[*].id + resource.Disk5[*].id, "source")}'
-  # =========================
+      attachedDisks: '${map_to_object(resource.Cloud_vSphere_Disk_1[*].id+resource.Cloud_vSphere_Disk_2[*].id+resource.Cloud_vSphere_Disk_3[*].id+resource.Cloud_vSphere_Disk_4[*].id+resource.Cloud_vSphere_Disk_5[*].id,"source")}'
+   # =========================
   # NETWORK RESOURCES
   # =========================
   Network:
