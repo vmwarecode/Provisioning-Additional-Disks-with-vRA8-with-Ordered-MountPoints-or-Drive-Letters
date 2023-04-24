@@ -1,92 +1,52 @@
 formatVersion: 1
 name: OrderedMountPoints
-version: 0.2.0
+version: 0.3.0
 inputs:
   instanceCount:
     type: integer
-    title: Enter Instance Count
+    title: Enter number of VMs
     minimum: 1
     maximum: 10
-    default: 1
+    default: 2
   # =========================
-  # DISK MOUNTPOINTS
+  # DISK INPUT GRID
   # =========================
   disks:
     type: array
+    minItems: 0
+    maxItems: 5
     title: Disks
-    description: Data disk mount points and sizes
+    description: Enter extra disk sizes and Linux mount points or Windows drive letters
     items:
       type: object
-      #maxItems: 5
       properties:
         size:
-          type: number
-          title: Size GB
-          minimum: 1
-          maximum: 1024
+          type: integer
+          title: Size (GB)
+          minSize: 1
+          maxSize: 2048
         mountpoint:
           type: string
-          title: Mountpoint/Drive Letter
+          title: Linux Mount Point/Win Drive Letter
 resources:
   # =========================
   # DISK RESOURCES
   # =========================
-  Cloud_vSphere_Disk_1:
-    type: Cloud.vSphere.Disk
+  Cloud_vSphere_Disks:
+    type: Cloud.Volume
+    allocatePerInstance: true
     properties:
-      Prefix: DEMODisk
-      capacityGb: '${input.disks[0].size}'
-      count: '${ length(input.disks) >= 1 ? 1 : 0 }'
-  Cloud_vSphere_Disk_2:
-    type: Cloud.vSphere.Disk
-    properties:
-      Prefix: DEMODisk
-      capacityGb: '${input.disks[1].size}'
-      count: '${ length(input.disks) >= 2 ? 1 : 0 }'
-  Cloud_vSphere_Disk_3:
-    type: Cloud.vSphere.Disk
-    properties:
-      Prefix: DEMODisk
-      capacityGb: '${input.disks[2].size}'
-      count: '${ length(input.disks) >= 3 ? 1 : 0 }'
-  Cloud_vSphere_Disk_4:
-    type: Cloud.vSphere.Disk
-    properties:
-      Prefix: DEMODisk
-      capacityGb: '${input.disks[3].size}'
-      count: '${ length(input.disks) >= 4 ? 1 : 0 }'
-  Cloud_vSphere_Disk_5:
-    type: Cloud.vSphere.Disk
-    properties:
-      Prefix: DEMODisk
-      capacityGb: '${input.disks[4].size}'
-      count: '${ length(input.disks) >= 5 ? 1 : 0 }'
+      capacityGb: ${input.disks[count.index%(length(input.disks))].size}
+      count: ${(length(input.disks))*(input.instanceCount)}
   # =========================
   # COMPUTE RESOURCES
   # =========================
-  Compute:
+  Cloud_Machines:
     type: Cloud.vSphere.Machine
     properties:
       Prefix: Demo
       count: '${input.instanceCount}'
       image: Linux
       flavor: Small
-      networks:
-        - network: '${resource.Network.id}'
-          assignment: static
-      constraints:
-        - tag: 'Compute:Tag'
-      storage:
-        constraints:
-          - tag: 'Storage:Tag'
-      # conditionally attach between 0 and 5 disks to the machine
-      attachedDisks: '${map_to_object(resource.Cloud_vSphere_Disk_1[*].id+resource.Cloud_vSphere_Disk_2[*].id+resource.Cloud_vSphere_Disk_3[*].id+resource.Cloud_vSphere_Disk_4[*].id+resource.Cloud_vSphere_Disk_5[*].id,"source")}'
-  # =========================
-  # NETWORK RESOURCES
-  # =========================
-  Network:
-    type: Cloud.vSphere.Network
-    properties:
-      networkType: existing
-      constraints:
-        - tag: 'Network:Tag'
+      # conditionally attach between 0 and N disks to the machine
+      attachedDisks: ${map_to_object(slice(resource.Cloud_vSphere_Disks[*].id, (length(input.disks))*count.index, (length(input.disks))*(count.index + 1)), "source")}

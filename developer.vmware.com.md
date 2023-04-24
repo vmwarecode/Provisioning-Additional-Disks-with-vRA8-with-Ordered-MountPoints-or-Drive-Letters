@@ -1,9 +1,3 @@
-# vRA8OrderedDisks
-
-## Provisioning Additional Disks with vRA8 with Ordered MountPoints or Drive Letters
-
-The title above is a vRA/vRO packaged solution available for download on [developer.vmware.com](https://developer.vmware.com/samples/7490/provisioning-additional-disks-with-vra8-with-ordered-mountpoints-or-drive-letters) by Jim Sadlek to solve the ordered disk KB problem known between vRA and vCenter.
-<br/><br/><br/>
 ## Background
  
 [Provisioning Additional Disks with vRA8](https://confluence.pscoe.vmware.com/display/KB/2020/04/10/Provisioning+Additional+Disks+with+vRA8) is an article on Confluence internal to Vmware's Professional Services Center of Engineering site.  Here's an extract from that page that summarizes the deficiency in vRA 8.
@@ -12,9 +6,19 @@ The title above is a vRA/vRO packaged solution available for download on [develo
 
 This workflow is the realization of the proposed design to mitigate the issue as described from this excerpt of the design proposed in the Confluence article.
  
-> *In order to mitigate the effect, the following sequence will be implemented as part of extensibility workflow attached to the "compute.provision.post" event of the compute deployment lifecycle...*
+> *In order to mitigate the effect, the following sequence will be implemented as part of extensibility workflow attached to the "compute.provision.post" event of the compute deployment lifecycle:*
 
-See here for [more information](https://developer.vmware.com/samples/7490/provisioning-additional-disks-with-vra8-with-ordered-mountpoints-or-drive-letters).
+> 
+1. Obtain reference to a *VC:VirtualMachine* object from the vCenter plugin in vRO and using the element contained in the *externalIds* property of the *inputProperties* object.
+2. Iterate over the device configuration of the *VirtualMachine* object (vm.config.hardware.device ) and extract only the items that contain the string \"Hard Disk\" in their label. This will result in an **ordered list** of disk devices.
+3. Preserving the order of the list, for each disk device extract the last segment of the file from the VMDK path without the **.vmdk** extension, e.g. [Datastore01] Compute-mcm709-134979764077\/**Disk2-mcm707-134979759940**.vmdk. This will result in an **ordered list** of Disk names.
+4. Get the deployment resources of the deployment using the Deployment Service API in vRA.
+5. Find the provisioned compute resource from the list of all compute resources (having type *Cloud.vSphere.Machine*) by comparing the resource IDs with the one contained in the *inputProperties* object.
+6. Extract the attached disks from the found compute resource using the *attachedDisks* property.
+7. Find the provisioned disk resources from the list of all disk resources (having type *Cloud.vSphere.Disk*) by comparing their IDs with the IDs of the attached disks of the provisioned compute resource.
+8. Sort the provisioned disk resources using the ordered list of disk names obtained from step (3) by comparing the values of the disk names (from step (3)) and the values of the *resourceName* property of the disks (from step (7)).
+
+> *The resulting ordered list will follow the order of attachment and will contain all properties input by the user. An in-guest script for disk mounting and disk formatting can be safely implemented using values following this order.*
 
 <br/><br/>
 ## Manifest
@@ -55,9 +59,10 @@ Modify the workflow or blueprint to match your environment.  For example, matchi
 ## Platform Version
 vRealize Orchestrator 8.11.0
 ## Authors and Acknowledgment
-Jim Sadlek<br/>
-Xinyuan Liu
+Jim Sadlek
 ## License
 MIT License, Copyright 2020 VMware, Inc.
 
 <br/><br/>
+
+Courtesy [markdowntohtml.com](https://markdowntohtml.com)

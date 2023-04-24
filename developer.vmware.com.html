@@ -1,0 +1,72 @@
+<html><head><style>body {
+   color: black;
+}
+</style></head><body><h2 id="background">Background</h2>
+<p><a href="https://confluence.pscoe.vmware.com/display/KB/2020/04/10/Provisioning+Additional+Disks+with+vRA8">Provisioning Additional Disks with vRA8</a> is an article on Confluence internal to Vmware&#39;s Professional Services Center of Engineering site.  Here&#39;s an extract from that page that summarizes the deficiency in vRA 8.</p>
+<blockquote>
+<p><em>When creating blueprints containing multiple attached disks to one or more compute resources, vRA8 automates the provisioning and attachment of those disks.  ... However,  vRA does not guarantee  that the  order of disk requests  matches the  order of the disks attached to the VM.</em></p>
+</blockquote>
+<p>This workflow is the realization of the proposed design to mitigate the issue as described from this excerpt of the design proposed in the Confluence article.</p>
+<blockquote>
+<p><em>In order to mitigate the effect, the following sequence will be implemented as part of extensibility workflow attached to the &quot;compute.provision.post&quot; event of the compute deployment lifecycle:</em></p>
+<ol>
+<li>Obtain reference to a <em>VC:VirtualMachine</em> object from the vCenter plugin in vRO and using the element contained in the <em>externalIds</em> property of the <em>inputProperties</em> object.</li>
+<li>Iterate over the device configuration of the <em>VirtualMachine</em> object (vm.config.hardware.device ) and extract only the items that contain the string \&quot;Hard Disk\&quot; in their label. This will result in an <strong>ordered list</strong> of disk devices.</li>
+<li>Preserving the order of the list, for each disk device extract the last segment of the file from the VMDK path without the <strong>.vmdk</strong> extension, e.g. [Datastore01] Compute-mcm709-134979764077\/<strong>Disk2-mcm707-134979759940</strong>.vmdk. This will result in an <strong>ordered list</strong> of Disk names.</li>
+<li>Get the deployment resources of the deployment using the Deployment Service API in vRA.</li>
+<li>Find the provisioned compute resource from the list of all compute resources (having type <em>Cloud.vSphere.Machine</em>) by comparing the resource IDs with the one contained in the <em>inputProperties</em> object.</li>
+<li>Extract the attached disks from the found compute resource using the <em>attachedDisks</em> property.</li>
+<li>Find the provisioned disk resources from the list of all disk resources (having type <em>Cloud.vSphere.Disk</em>) by comparing their IDs with the IDs of the attached disks of the provisioned compute resource.</li>
+<li>Sort the provisioned disk resources using the ordered list of disk names obtained from step (3) by comparing the values of the disk names (from step (3)) and the values of the <em>resourceName</em> property of the disks (from step (7)).</li>
+</ol>
+<p><em>The resulting ordered list will follow the order of attachment and will contain all properties input by the user. An in-guest script for disk mounting and disk formatting can be safely implemented using values following this order.</em></p>
+</blockquote>
+<p><br/><br/></p>
+<h2 id="manifest">Manifest</h2>
+<ul>
+<li>vRO Package: (com.vmware.pso.OrderedMountPoints.package)</li>
+<li>vRA Dynamic, Multi-Disk Blueprint (blueprint.yaml)</li>
+<li>Linux Guest Script (diskmount.sh)</li>
+<li>Windows Guest Script (diskmount.ps1)</li>
+<li>License.txt</li>
+</ul>
+<p><br/><br/></p>
+<h2 id="pre-requisite">Pre-Requisite</h2>
+<p>Install <a href="https://developer.vmware.com/samples/7674/guest-script-manager---vro-8-x-version-technical-preview">Guest Script Manager</a> (by Christophe Decanini)</p>
+<h3 id="how-to-configure-the-workflow">How to configure the Workflow</h3>
+<ol>
+<li>Import the vRO package and vRA Blueprint from here.</li>
+<li>Run the Guest Script Manager Script Management workflow to &quot;Add script configuration&quot;.  <ul>
+<li>Give the Resource Configuration a name, such as diskmount.sh</li>
+<li>Copy and paste the Linux Bash script from the attached file into the Script content</li>
+<li>Set the script parameters accordingly, such as timeout, and refresh settings, in seconds.</li>
+<li>Do the same for the Powershell script, diskmount.ps1</li>
+</ul>
+</li>
+<li>Populate these Variables on the Workflow<ul>
+<li>linuxScriptResource &amp; windowsScriptResource</li>
+<li>linuxUsername, linuxPassword, windowsUsername, &amp; windowsPassword</li>
+<li>vraUsername &amp; vraPassword</li>
+<li>vraRestHost</li>
+</ul>
+</li>
+<li>Create a subscription in vRA that invokes this workflow on a compute post provision event.
+<br/><br/></li>
+</ol>
+<h3 id="notes-and-assumptions-">Notes and Assumptions:</h3>
+<ul>
+<li>This workflow has a dependency on the Guest Script Manager and Guest Operations &quot;Run Script in Guest&quot; workflow.  Install that package if you do not already have it.</li>
+<li>This workflow assumes that the blueprint contains a &quot;disks&quot; input array that contains a &quot;size&quot; and a &quot;mountpoint&quot; sub property.  Also, the &#39;isWindows&#39; logic assumes an &quot;image&quot; property exists on the vSphere Machine compute resource that is either &quot;Linux&quot; or &quot;Windows&quot;.  </li>
+<li>This workflow used a custom naming template like this: ${resource.Prefix}${##}</li>
+</ul>
+<p>Modify the workflow or blueprint to match your environment.  For example, matching constraint tags; or using static or dynamic networking; etc.</p>
+<p><br/><br/></p>
+<h2 id="platform-version">Platform Version</h2>
+<p>vRealize Orchestrator 8.11.0</p>
+<h2 id="authors-and-acknowledgment">Authors and Acknowledgment</h2>
+<p>Jim Sadlek</p>
+<h2 id="license">License</h2>
+<p>MIT License, Copyright 2020 VMware, Inc.</p>
+<p><br/><br/></p>
+<p>Courtesy <a href="https://markdowntohtml.com">markdowntohtml.com</a></p>
+</body></html>
