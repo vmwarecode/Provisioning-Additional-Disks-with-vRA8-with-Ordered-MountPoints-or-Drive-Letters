@@ -43,6 +43,7 @@ resources:
   # =========================
   Cloud_Machines:
     type: Cloud.vSphere.Machine
+    allocatePerInstance: true
     properties:
       Prefix: Demo
       count: '${input.instanceCount}'
